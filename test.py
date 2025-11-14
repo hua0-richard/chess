@@ -2,6 +2,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 
 root = tk.Tk()
+root.resizable(False, False)
 width = 512
 height = 512
 square_width = 64
