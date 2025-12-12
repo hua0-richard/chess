@@ -1,15 +1,19 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 
+from datetime import datetime
+
 root = tk.Tk()
+toolbar_height = 64
 root.resizable(False, False)
 width = 512
-height = 512
+height = 512 + toolbar_height * 2
 square_width = 64
 root.geometry(f"{width}x{height}")
 canvas = tk.Canvas(root, width=width, height=height, bg="black")
 canvas.pack()
 
+p2_timer = None
 
 class Piece:
     def __init__(self):
@@ -84,6 +88,8 @@ class Board:
         self.active_piece = None
         self.instance = None
         self.squares = [[None for r in range(8)] for c in range(8)]
+        self.p2_timer = None
+        self.p1_timer = None
 
     def snap():
         None
@@ -95,10 +101,23 @@ class Board:
                     color = "#EEEED2"
                 else:
                     color = "#769656"
-                board.squares[x][y] = canvas.create_rectangle(x * square_width, y * square_width, x * square_width +
-                                                              square_width, y * square_width + square_width, fill=color)
+                board.squares[x][y] = canvas.create_rectangle(x * square_width, y * square_width + toolbar_height, x * square_width +
+                                                              square_width, y * square_width + square_width + toolbar_height, fill=color)
                 canvas.tag_bind(
                     board.squares[x][y], "<Button-1>", lambda event: self.updateActivePiece(event.x, event.y))
+
+    def _drawToolbar(self):
+        canvas.create_rectangle(10, 10, 54, 54, fill="#4D55B5")
+        canvas.create_text(64, 10, text="AI", font=("TkFixedFont", 12, "bold"), anchor="nw")
+
+        self.p1_timer = canvas.create_text(64, 54, text=datetime.now().strftime("%H:%M:%S"), font=("TkFixedFont", 12), anchor="sw")
+
+
+        canvas.create_rectangle(10, 10 + 512 + 64, 54, 512 + 64 + 54, fill="#33BB2B")
+        
+        canvas.create_text(64, 512 + 64 + 10, text="Player", font=("TkFixedFont", 12, "bold"), anchor="nw")
+
+        self.p2_timer = canvas.create_text(64, 512 + 64 + 54, text=datetime.now().strftime("%H:%M:%S"), font=("TkFixedFont", 12), anchor="sw")
 
     def _placePieces(self):
         self.instance = [
@@ -119,19 +138,23 @@ class Board:
             for y in range(8):
                 offset = 11
                 if self.instance[x][y] != None:
-                    self.instance[x][y].drawSelf(canvas, y * square_width + offset, x * square_width + offset)
+                    self.instance[x][y].drawSelf(
+                        canvas, y * square_width + offset, x * square_width + offset + toolbar_height)
                     pid = self.instance[x][y].piece_id
-                    canvas.tag_bind(self.instance[x][y].piece_id, "<Button-1>", lambda event, pid=pid: self.setActivePiece(pid, event.x, event.y))
+                    canvas.tag_bind(self.instance[x][y].piece_id, "<Button-1>",
+                                    lambda event, pid=pid: self.setActivePiece(pid, event.x, event.y))
 
     def drawBoard(self):
         self._drawBoard()
+        self._drawToolbar()
         self._placePieces()
         self._drawPieces()
 
     def setActivePiece(self, piece, x, y):
         print("Active Piece Set")
         if self.active_piece and self.active_piece != piece:
-            self.canvas.coords(self.active_piece, x - (x % 64) + 11 , y - (y % 64) + 11)
+            self.canvas.coords(self.active_piece, x - (x %
+                               64) + 11, y - (y % 64) + 11)
             self.canvas.delete(piece)
             self.active_piece = None
         else:
@@ -141,11 +164,17 @@ class Board:
     def updateActivePiece(self, x, y):
         if self.active_piece:
             print("Updated Position")
-            self.canvas.coords(self.active_piece, x - (x % 64) + 11 , y - (y % 64) + 11)
+            self.canvas.coords(self.active_piece, x - (x %
+                               64) + 11, y - (y % 64) + 11)
             self.active_piece = None
+    
+def update_time(time_item):
+    canvas.itemconfig(time_item, text=datetime.now().strftime("%H:%M:%S"))
+    root.after(16, lambda: update_time(time_item))
 
 
 board = Board(canvas)
 board.drawBoard()
-
+update_time(board.p2_timer)
+update_time(board.p1_timer)
 root.mainloop()
